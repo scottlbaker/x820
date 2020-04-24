@@ -76,6 +76,8 @@ The timer control register bit definitions are:
 - tmres0 equ 02h ; timer resolution
 - tmrdone equ 01h ; timer done bit
 
+The timer resolution definitions are:
+
 - tmres = 00 for 1 msec resolution
 - tmres = 01 for 10 msec resolution
 - tmres = 10 for 100 msec resolution
