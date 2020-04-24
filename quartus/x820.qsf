@@ -1,0 +1,114 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2018  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel FPGA IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Intel and sold by Intel or its authorized distributors.  Please
+# refer to the applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 18.1.0 Build 625 09/12/2018 SJ Lite Edition
+# Date created = 21:39:33  January 23, 2019
+#
+# -------------------------------------------------------------------------- #
+
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CSEBA6U23I7
+set_global_assignment -name TOP_LEVEL_ENTITY x820
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 2
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 16.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "21:39:33  JANUARY 23, 2019"
+set_global_assignment -name LAST_QUARTUS_VERSION "16.1.0 Lite Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP "-40"
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 100
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+
+set_global_assignment -name SYSTEMVERILOG_FILE x820.v
+set_global_assignment -name SYSTEMVERILOG_FILE xirqp.v
+set_global_assignment -name SYSTEMVERILOG_FILE xmux.v
+set_global_assignment -name SYSTEMVERILOG_FILE xpla.v
+set_global_assignment -name SYSTEMVERILOG_FILE xreset.v
+set_global_assignment -name SYSTEMVERILOG_FILE ram.v
+set_global_assignment -name SYSTEMVERILOG_FILE uart.v
+set_global_assignment -name SYSTEMVERILOG_FILE fifo.v
+set_global_assignment -name SYSTEMVERILOG_FILE rand8.v
+set_global_assignment -name SYSTEMVERILOG_FILE timer16.v
+set_global_assignment -name SYSTEMVERILOG_FILE leds.v
+set_global_assignment -name SYSTEMVERILOG_FILE z80.v
+set_global_assignment -name SYSTEMVERILOG_FILE z80.vh
+set_global_assignment -name SYSTEMVERILOG_FILE addr.v
+set_global_assignment -name SYSTEMVERILOG_FILE addr.vh
+set_global_assignment -name SYSTEMVERILOG_FILE alu.v
+set_global_assignment -name SYSTEMVERILOG_FILE alu.vh
+set_global_assignment -name SYSTEMVERILOG_FILE decode.v
+set_global_assignment -name SYSTEMVERILOG_FILE decode.vh
+
+set_global_assignment -name SDC_FILE x820.sdc
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to led[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to led[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to led[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to led[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to led[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to led[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to led[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to led[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to txd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to rxd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to reset_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
+
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led[7]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led[6]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led[5]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led[4]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led[3]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led[2]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led[1]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led[0]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to txd
+
+set_instance_assignment -name SLEW_RATE 1 -to led[7]
+set_instance_assignment -name SLEW_RATE 1 -to led[6]
+set_instance_assignment -name SLEW_RATE 1 -to led[5]
+set_instance_assignment -name SLEW_RATE 1 -to led[4]
+set_instance_assignment -name SLEW_RATE 1 -to led[3]
+set_instance_assignment -name SLEW_RATE 1 -to led[2]
+set_instance_assignment -name SLEW_RATE 1 -to led[1]
+set_instance_assignment -name SLEW_RATE 1 -to led[0]
+set_instance_assignment -name SLEW_RATE 1 -to txd
+
+set_location_assignment PIN_AA23 -to led[7]
+set_location_assignment PIN_Y16  -to led[6]
+set_location_assignment PIN_AE26 -to led[5]
+set_location_assignment PIN_AF26 -to led[4]
+set_location_assignment PIN_V15  -to led[3]
+set_location_assignment PIN_V16  -to led[2]
+set_location_assignment PIN_AA24 -to led[1]
+set_location_assignment PIN_W15  -to led[0]
+set_location_assignment PIN_AE22 -to txd
+set_location_assignment PIN_AF21 -to rxd
+set_location_assignment PIN_AH16 -to reset_n
+set_location_assignment PIN_Y13 -to clk
+
+set_global_assignment -name CDF_FILE output_files/chain1.cdf
+
+
+
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

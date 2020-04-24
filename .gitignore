@@ -1,0 +1,18 @@
+
+# Ignore these
+
+# monitor
+data/monitor/*.hex
+data/monitor/*.bin
+data/monitor/*.lst
+data/monitor/temp/**
+
+# Quartus files
+quartus/*.v
+quartus/*.vh
+quartus/db/**
+quartus/incremental_db/**
+quartus/output_files/*.rpt
+quartus/output_files/*.summary
+quartus/output_files/*.done
+quartus/output_files/*.smsg
