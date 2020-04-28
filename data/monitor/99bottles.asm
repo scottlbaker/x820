@@ -3,7 +3,8 @@
 ; 99 Bottles of Beer :: A silly demo program that uses
 ; CP/M BDOS calls to print strings. The original 8080
 ; code was written by Elroy Sullivan and Barry Goode.
-; It was translated to z80 assembly by Scott L. Baker
+; It was translated to z80 assembly and ported to the
+; x820 FPGA z80 computer system by Scott Baker
 ;=======================================================
 
            org  100h

@@ -1,7 +1,10 @@
 
 ;=======================================================
-; blinky.asm - counting pattern to LEDs on the DE10
-;              load blinky.hex file from the monitor
+; A test program for the x820 FPGA z80 computer system
+; Send a counting pattern to the LEDs on the
+; DE10 FPGA development board
+;
+; (c) Scott L. Baker  2020
 ;=======================================================
 
            org  100h

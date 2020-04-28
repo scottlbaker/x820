@@ -1,8 +1,12 @@
 
 ;=======================================================
-;=======================================================
-;         x820 Monitor ROM   Version 1.0
-;=======================================================
+; x820 Monitor ROM   Version 1.0
+;
+; A monitor for the x820 FPGA z80 computer system
+; This project was inspired by the Xerox 820 computer
+; system (circa 1981)
+;
+; (c) Scott L. Baker  2020
 ;=======================================================
 
            org  0
@@ -56,7 +60,7 @@ cmdtab:    db   'o'           ; call oport
            db   'h'           ; call help
 
            dw   help          ; print help message
-           dw   boot          ; boot OS
+           dw   boot          ; jump to 0100h
            dw   mtest         ; run memory test
            dw   pload         ; program loader
            dw   goto          ; jump to memory location
@@ -86,10 +90,10 @@ search:    ld   hl,cmdtab     ; point to command table
            ret                ; z=1 if command found
 
 ;-------------------------------------------------------
-; Boot loader command
+; Boot command (start program at 0100h)
 ;-------------------------------------------------------
-boot:      call todo
-           ret
+boot:      call crlf          ; print linefeed
+           jp   0100h         ; jump to 0100h
 
 ;-------------------------------------------------------
 ; Memory test command
@@ -306,7 +310,6 @@ puts:      ld   a,(hl)        ; get the next char
            or   a             ; check for string end
            ret  z             ; return if done
            jr   puts          ; repeat
-           ret
 
 ;-------------------------------------------------------
 ; DUMMY routine  (3 of 5)
@@ -359,7 +362,6 @@ puts:      ld   a,(hl)        ; get the next char
            call putc          ; put a character
            inc  hl            ; increment pointer
            jr   puts          ; repeat
-           ret
 
 ;-------------------------------------------------------
 ; Get a character from the UART with timeout
@@ -370,7 +372,7 @@ rxbyte:    in   a,(timecntl)  ; get timer status
            jr   z,rxbnto      ; jump if no timeout
            scf                ; else set carry and
            ret                ; return
-rxbnto     in   a,(uartstat)  ; get uart status
+rxbnto:    in   a,(uartstat)  ; get uart status
            and  rxempty       ; rx fifo empty?
            jr   nz,rxbyte     ; wait if empty
            in   a,(uartdata)  ; get a character
@@ -619,13 +621,6 @@ help:      ld   hl,helpmsg
            jp   puts
 
 ;-------------------------------------------------------
-; Print not-implemented message
-; modifies registers a and hl
-;-------------------------------------------------------
-todo:      ld   hl,todomsg
-           jp   puts
-
-;-------------------------------------------------------
 ; Print error message
 ; modifies registers a and hl
 ;-------------------------------------------------------
@@ -710,7 +705,7 @@ timeich    equ  0ah       ; initial count high
 diagleds   equ  0ch       ; LED data register
 
 ;-------------------------------------------------------
-; register bit definitions
+; x820 register bit definitions
 ;-------------------------------------------------------
 
 rx_en      equ  02h       ; rx enable
@@ -749,17 +744,13 @@ helpmsg    db   cr,lf
            db   'x820 Monitor - Version 1.0',cr,lf
            db   cr,lf
            db   'h        :: print help message',cr,lf
-           db   'b        :: boot OS',cr,lf
+           db   'b        :: jump to 0100h',cr,lf
            db   't        :: run memory test',cr,lf
            db   'p        :: program load',cr,lf
            db   'g <addr> :: jump to location',cr,lf
            db   'd <addr> :: dump memory',cr,lf
            db   'i <port> :: read from input port',cr,lf
            db   'o <port> :: write to output port',cr,lf
-           db   0
-
-todomsg    db   '  command not implemented'
-           db   cr,lf
            db   0
 
 dbgmsg     db   '  debug message'

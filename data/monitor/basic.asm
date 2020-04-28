@@ -15,17 +15,15 @@
 ;
 ; zero page subroutines
 ;
-; The 8080/Z80 architecture had a set of rst instructions
-; (rst 0 through rst 7) that could be used instead of
-; the three byte call instruction for 8 subroutines
-; in page 0 thus saving program time and space.
+; The Z80 architecture has a set of one-byte rst
+; instructions that can be used in memory page 0
+; instead of the three-byte call instruction.
 ;
-; The original Tiny Basic used use rst 0 through rst 7
-; for commonly used subroutines. In the X820 project
+; The original Tiny Basic used rst 0 through rst 7
+; for commonly used subroutines. In the x820 project
 ; by convention programs are loaded at 100h, so it is
-; not possible to use this optimization and we
-; do not use the rst instructions except for rst 0
-; which is used to return to the monitor.
+; not possible to use this optimization so we use
+; calls rather than rst instructions
 ;
 ;-------------------------------------------------------
 
@@ -37,7 +35,7 @@ start:     ld   sp,stack      ; cold start
            ld   a,0ffh
            jp   init
 
-crlf:      ld   a,0dh         ; crlf
+crlf:      ld   a,cr          ; crlf
 
 rst2:
 outc:
@@ -105,7 +103,7 @@ tv1:       cp   1bh           ; not @, is it a to z?
            rlca               ; that variable
            add  a,l           ; and return it in hl
            ld   l,a           ; with c flag cleared
-           ld   a,0
+           xor  a             ; clear a
            adc  a,h
            ld   h,a
            ret
@@ -151,7 +149,7 @@ tn1:       cp   30h           ; if not, return 0 in
            and  0fh           ; code
            add  a,l
            ld   l,a
-           ld   a,0
+           xor  a             ; clear a
            adc  a,h
            ld   h,a
            pop  bc
@@ -160,14 +158,6 @@ tn1:       cp   30h           ; if not, return 0 in
 qhow:      push de            ; error "how?"
 ahow:      ld   de,how
            jp   error
-how:       db   'how?'
-           db   cr
-ok:        db   'OK'
-           db   cr
-what:      db   'what?'
-           db   cr
-sorry:     db   'sorry'
-           db   cr
 
 ;-------------------------------------------------------
 ;
@@ -254,7 +244,7 @@ st4:       pop  bc            ; get ready to insert
            jp   z,rstart      ; must clear the stack
            add  a,l           ; compute new txtunf
            ld   l,a
-           ld   a,0
+           xor  a             ; clear a
            adc  a,h
            ld   h,a           ; hl->new unfilled area
            ld   de,txtend     ; check to see if there
@@ -312,7 +302,7 @@ stop:      call endchk        ; stop(cr)
            jp   rstart
 
 bye:       call endchk        ; run(cr)
-           rst  00h
+           jp   0             ; exit to the monitor
 
 run:       call endchk        ; run(cr)
            ld   de,txtbgn     ; first saved line
@@ -957,12 +947,10 @@ dv2:       inc  c             ; dumb routine
            add  hl,de
            ret
 
-subde:     ld   a,l           ; subde
-           sub  e             ; substract de from
-           ld   l,a           ; hl
+subde:     xor  a             ; clear carry
+           sbc  hl,de         ; check line length
            ld   a,h
-           sbc  a,d
-           ld   h,a
+           add  a,l           ; set the z flag
            ret
 
 chksgn:    ld   a,h           ; chksgn
@@ -1093,12 +1081,11 @@ asorry:    ld   de,sorry      ; asorry
 ;
 ; getln, fndln, fndlnp, fndnxt, and fndskp
 ;
-; getln first prints the char in a, then it fills the
-; the buffer and echos it. It ignores lf and nulls,
-; but still echos them back. rub-out is used to cause
-; it to delete the last character and alt-mod is used
-; to delete the whole line. cr signals the end of a
-; line and causes getln to return
+; getln gets a char and loads it into the line buffer
+; and printable characters are echoed
+; backspace is used to delete the last character
+; control-k is used to delete the whole line
+; carriage return signals the end of a line
 ;
 ; fndln finds a line with a given line number (in hl)
 ; in the text save area. de is used as the text pointer
@@ -1114,7 +1101,7 @@ asorry:    ld   de,sorry      ; asorry
 ; routine will not initialize de and do the search
 ;
 ; fndlnp will start with de and search for the line#
-; fndnxt will bump de by 2, find a cr and then start search
+; fndnxt will bump de by 2, find a cr and then search
 ; fndskp use de to find a cr, and then start search
 ;
 ;-------------------------------------------------------
@@ -1123,32 +1110,35 @@ getln:     call outc          ; getln
            ld   de,buffer     ; prompt and init.
 gl1:       call chkio         ; check keyboard
            jp   nz,gl1        ; no input, wait
-           cp   7fh           ; delete last character?
-           jp   z,gl3         ; yes
-           call outc          ; input, echo back
-           cp   0ah           ; ignore lf
-           jp   z,gl1
-           or   a             ; ignore null
-           jp   z,gl1
-           cp   7dh           ; delete the whole line?
-           jp   z,gl4         ; yes
+           cp   cr            ; carriage return?
+           jr   z,gl2         ; ends line
+           cp   bksp          ; backspace?
+           jp   z,gl3         ; removes char
+           cp   ctrlk         ; ctrl-k?
+           jr   z,gl4         ; kills line
+           cp   ' '           ; non-printable?
+           jr   c,gl1         ; ignore
+           call outc          ; echo char
            ld   (de),a        ; else save input
            inc  de            ; and bump pointer
-           cp   0dh           ; was it cr?
-           ret  z             ; yes, end of line
-           ld   a,e           ; else more free room?
-           cp   bufend and 0ffh
-           jp   nz,gl1        ; yes, get next input
-gl3:       ld   a,e           ; delete last character
-           cp   buffer and 0ffh
-           jp   z,gl4         ; no, redo whole line
-           dec  de            ; yes, backup pointer
-           ld   a,'\'         ; and echo a back-slash
-           call outc
-           jp   gl1           ; go get next input
-gl4:       call crlf          ; redo entire line
-           ld   a,05eh        ; cr, lf and up-arrow
-           jp   getln
+           ld   hl,bufend     ; more free room?
+           call subde         ; hl = hl-de
+           jp   nz,gl1        ; yes, get next char
+           ld   a,cr          ; else
+gl2:       ld   (de),a        ; end line
+           ret                ; and return
+
+gl3:       ld   hl,buffer     ; start of buffer
+           call subde         ; hl = hl-de
+           jr   z,gl1         ; line empty?
+           call overstk       ; overstrike char
+           jr   gl1           ; get next input
+
+gl4:       ld   hl,buffer     ; start of buffer
+           call subde         ; hl = hl-de
+           jr   z,gl1         ; line empty?
+           call overstk       ; overstrike char
+           jr   gl4           ; erase more
 
 fndln:     ld   a,h           ; fndln
            or   a             ; check sign of hl
@@ -1441,8 +1431,6 @@ ci1:       cp   3h            ; is it control-c?
            cp   a
            ret                ; return with z set
 
-msg1:      db   'Tiny Basic - Version 1.0',cr
-
 ;-------------------------------------------------------
 ;
 ; tables  direct  & exec
@@ -1603,6 +1591,42 @@ ex5:       ld   a,(hl)        ; load hl with the jump
            ld   h,a
            pop  af            ; clean up the gabage
            jp   (hl)          ; and we go do it
+
+
+;-------------------------------------------------------
+; Print an overstrike sequence
+; modifies register a, and de
+;-------------------------------------------------------
+overstk:   dec  de
+           ld   a,bksp
+           call putc
+           ld   a,' '
+           call putc
+           ld   a,bksp
+           jp   putc
+
+;-------------------------------------------------------
+; Send a character to the UART
+; char to be sent is in register a
+; no registers are modified
+;-------------------------------------------------------
+putc:      push af            ; save a
+putcx:     in   a,(uartstat)  ; get uart status
+           and  txfull        ; tx fifo full?
+           jr   nz,putcx      ; wait if full
+           pop  af            ; restore a
+           out  (uartdata),a  ; put a character
+           ret
+
+;-------------------------------------------------------
+; strings
+;-------------------------------------------------------
+
+msg1:      db   'Tiny Basic - Version 1.01',cr
+how:       db   'how?',cr
+ok:        db   'OK',cr
+what:      db   'what?',cr
+sorry:     db   'sorry',cr
 
 ;-------------------------------------------------------
 ; x820 register definitions
