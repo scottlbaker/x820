@@ -88,11 +88,11 @@ The timer resolution definitions are:
 The monitor has the following commands
 
 - h       :: print help message
-- b       :: boot OS (not implemented yet)
+- b       :: boot (jump to 0x100)
 - t       :: run memory test
 - p       :: program load
-- g addr  :: jump to location
-- d addr  :: dump memory
+- g addr  :: jump to addr
+- d addr  :: dump memory starting at addr
 - i port  :: read from input port
 - o port  :: write to output port
 
