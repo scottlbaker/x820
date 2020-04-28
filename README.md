@@ -103,6 +103,9 @@ The following demo programs are included in this repo:
 - blinky.asm -- blink the DE10 LEDs at 1Hz rate
 - 99bottles.asm -- a program that uses BDOS calls to print strings
 - life.asm -- Conway&#39;s Game of Life
+- basic.asm -- Tiny BASIC
+- piCalc.asm -- A Pi calculation algorithm
+- lunar.asm -- A text-based Lunar Lander game
 
 To load a demo program, use the monitor program load command and then use your terminal emulator file send command to upload the hex file.
 The demo program hex files are located in the data/monitor/hex directory
