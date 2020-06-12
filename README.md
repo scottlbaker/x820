@@ -60,18 +60,24 @@ The RNG control register bit definitions are
 
 - rng\_en equ 01h ; rng enable
 
-## 16-bit Timer
+## 16-bit Timers
 
-The timer is generic and not modeled after any existing UART
+There are 2 identical 16-bit timers.
 
 The timer I/O space register addresses are:
 
-- timecntl equ 08h ; timer control/status register
-- timeicl equ 09h ; initial count low
-- timeich equ 0ah ; initial count high
+- tmr1cntl equ 08h ; timer control/status register
+- tmr1icl equ 09h ; initial count low
+- tmr1ich equ 0ah ; initial count high
+- tmr1clr equ 0bh ; clear count
+- tmr2cntl equ 0ch ; timer control/status register
+- tmr2icl equ 0dh ; initial count low
+- tmr2ich equ 0eh ; initial count high
+- tmr2clr equ 0fh ; clear count
 
 The timer control register bit definitions are:
 
+- tmrupd equ 08h ; 0=count down 1=count up
 - tmres1 equ 04h ; timer resolution
 - tmres0 equ 02h ; timer resolution
 - tmrdone equ 01h ; timer done bit
@@ -106,6 +112,7 @@ The following demo programs are included in this repo:
 - basic.asm -- Tiny BASIC
 - piCalc.asm -- A Pi calculation algorithm
 - lunar.asm -- A text-based Lunar Lander game
+- spacewar.asm -- A Tek40xx graphic SpaceWar game
 
 To load a demo program, use the monitor program load command and then use your terminal emulator file send command to upload the hex file.
 The demo program hex files are located in the data/monitor/hex directory
