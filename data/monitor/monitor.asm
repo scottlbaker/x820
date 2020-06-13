@@ -12,13 +12,17 @@
            org  0
 
            jp   moninit       ; monitor init
-           ds   2
-           jp   cpmbdos       ; CP/M BDOS
-           jp   cmdloop       ; monitor command
+           ds   2             ; ---
+           jp   monbdos       ; bdos commands
+           jp   cmdloop       ; monitor command loop
+           jp   isr1          ; interrupt service 1
+           jp   isr2          ; interrupt service 2
+           jp   isr3          ; interrupt service 3
 
 simode     equ  0             ; 1=sim 0=synthesis
 
 rom        equ  0f000h        ; start of rom
+tos        equ  0ff00h        ; top of stack
 
            org  rom
 
@@ -92,7 +96,7 @@ search:    ld   hl,cmdtab     ; point to command table
 ;-------------------------------------------------------
 ; Boot command (start program at 0100h)
 ;-------------------------------------------------------
-boot:      call crlf          ; print linefeed
+boot:      call xcrlf         ; print linefeed
            jp   0100h         ; jump to 0100h
 
 ;-------------------------------------------------------
@@ -127,7 +131,7 @@ goto:      call space         ; print a space
            ret  c             ; exit if error
            push bc            ; bc has the address
            pop  ix            ; now ix has the address
-           call crlf          ; print linefeed
+           call xcrlf         ; print linefeed
            jp   (ix)          ; jump to code @ ix
 
 ;-------------------------------------------------------
@@ -137,7 +141,7 @@ mdump:     call space         ; print a space
            ld   a,4           ; 4 ascii chars
            call gethex        ; get the address
            ret  c             ; exit if error
-           call crlf          ; print linefeed
+           call xcrlf         ; print linefeed
            ld   de,20h        ; dump 32x16 bytes
            push bc            ; bc has the start address
            pop  hl            ; now hl has the address
@@ -148,7 +152,7 @@ mdmp2:     ld   a,(hl)        ; get a data byte @ hl
            inc  hl
            call put2hs        ; print the data in hex
            djnz mdmp2         ; repeat 16 times
-           call crlf          ; print linefeed
+           call xcrlf         ; print linefeed
            dec  de            ; decrement count
            ld   a,d
            or   e             ; check iteration count
@@ -162,7 +166,7 @@ iport:     call space         ; print a space
            ld   a,2           ; 2 ascii chars
            call gethex        ; get the port number
            jr   c,iportx      ; exit if error
-           call crlf          ; print linefeed
+           call xcrlf         ; print linefeed
            ld   c,b
            in   a,(c)         ; get data from port
            call put2hx        ; print the data
@@ -212,7 +216,7 @@ plexit:    call rxbyt1        ; purge data
            db   'CRC = ',0
            ld   hl,(crc16)
            call put4hs        ; print 16-bit CRC
-           call crlf          ; print linefeed
+           call xcrlf         ; print linefeed
            jp   cmdloop       ; jump to monitor
 
 ;-------------------------------------------------------
@@ -247,7 +251,7 @@ cclr:      dec  b
 ; modifies register a
 ;----------------------------------------------------
 inittm0:   xor  a
-           out  (timeich),a   ; load timer high
+           out  (tmr1ich),a   ; load timer high
            ret
 
 ;----------------------------------------------------
@@ -257,9 +261,9 @@ inittm0:   xor  a
 ; on exit:
 ;   modifies register a
 ;----------------------------------------------------
-inittm1:   out  (timeicl),a   ; load timer low
+inittm1:   out  (tmr1icl),a   ; load timer low
            ld   a,07h         ; 1 sec resolution
-           out  (timecntl),a  ; enable the timer
+           out  (tmr1cntl),a  ; enable the timer
            ret
 
 ;-------------------------------------------------------
@@ -297,29 +301,41 @@ inituart:  ld   a,3           ; enable tx and rx
            IF   simode        ; sim-mode condition
 
 ;-------------------------------------------------------
-; DUMMY routine  (1 of 5)
+; DUMMY routine  (1 of 8)
 ;-------------------------------------------------------
 putc:      nop
            ret
 
 ;-------------------------------------------------------
-; DUMMY routine  (2 of 5)
+; DUMMY routine  (2 of 8)
 ;-------------------------------------------------------
 puts:      ld   a,(hl)        ; get the next char
-           inc  hl            ; increment pointer
            or   a             ; check for string end
            ret  z             ; return if done
+           inc  hl            ; increment pointer
            jr   puts          ; repeat
 
 ;-------------------------------------------------------
-; DUMMY routine  (3 of 5)
+; DUMMY routine  (3 of 8)
+;-------------------------------------------------------
+bdputc:    nop
+           ret
+
+;-------------------------------------------------------
+; DUMMY routine  (4 of 8)
+;-------------------------------------------------------
+bdputs:    nop
+           ret
+
+;-------------------------------------------------------
+; DUMMY routine  (5 of 8)
 ;-------------------------------------------------------
 rxbyte:    xor  a             ; clear the carry
 
 ;          fall into getc
 
 ;-------------------------------------------------------
-; DUMMY routine  (4 of 5)
+; DUMMY routine  (6 of 8)
 ;-------------------------------------------------------
 getc:      push hl
            ld   hl,(ccptr)    ; get the pointer
@@ -330,7 +346,13 @@ getc:      push hl
            ret
 
 ;-------------------------------------------------------
-; DUMMY routine  (5 of 5)
+; DUMMY routine  (7 of 8)
+;-------------------------------------------------------
+kbhit:     xor  a             ; clear the zero flag
+           ret
+
+;-------------------------------------------------------
+; DUMMY routine  (8 of 8)
 ;-------------------------------------------------------
 tmwait:    nop
            ret
@@ -364,10 +386,36 @@ puts:      ld   a,(hl)        ; get the next char
            jr   puts          ; repeat
 
 ;-------------------------------------------------------
+; Send a character to the UART
+; char to be sent is in register e
+; no registers are modified
+;-------------------------------------------------------
+bdputc:    in   a,(uartstat)  ; get uart status
+           and  txfull        ; tx fifo full?
+           jr   nz,bdputc     ; wait if full
+           ld   a,e           ; get char in e
+           out  (uartdata),a  ; put the character
+           ret
+
+;-------------------------------------------------------
+; Send a string to the UART
+; pointer to string is in register de
+; strings are terminated with CP/M EOS (=$)
+; modifies registers a and hl
+;-------------------------------------------------------
+bdputs:    ld   a,(de)        ; get the next char
+           cp   '$'           ; check for string end
+           ret  z             ; return if done
+           call putc          ; put a character
+           inc  de            ; increment pointer
+           jr   bdputs        ; repeat
+           ret
+
+;-------------------------------------------------------
 ; Get a character from the UART with timeout
 ; modifies register a
 ;-------------------------------------------------------
-rxbyte:    in   a,(timecntl)  ; get timer status
+rxbyte:    in   a,(tmr1cntl)  ; get timer status
            and  tmrdone       ; check for timeout
            jr   z,rxbnto      ; jump if no timeout
            scf                ; else set carry and
@@ -388,10 +436,21 @@ getc:      in   a,(uartstat)  ; get uart status
            in   a,(uartdata)  ; get a character
            ret
 
+;-------------------------------------------------------
+; check for a control-c from user
+; modifies register a
+;-------------------------------------------------------
+kbhit:     in   a,(uartstat)  ; get uart status
+           and  rxempty       ; rx fifo empty?
+           ret  nz            ; return if empty
+           in   a,(uartdata)  ; else get a character
+           cp   ctrlc         ; set z if control-c
+           ret                ; if control-c
+
 ;----------------------------------------------------
 ; Timer wait loop
 ;----------------------------------------------------
-tmwait:    in   a,(timecntl)  ; get timer status
+tmwait:    in   a,(tmr1cntl)  ; get timer status
            and  tmrdone       ; check for timeout
            jr   z,tmwait      ; wait for timeout
            ret
@@ -569,41 +628,21 @@ cnv16:     ld   a,(hl)        ; first byte
            ret
 
 ;-------------------------------------------------------
-; CP/M BDOS jump table
-;   c=2 print char
-;   c=9 print string
+; CP/M BDOS lite jump table
+;   c=01h get   char
+;   c=02h print char
+;   c=09h print string
+;   c=99h check for control-c
 ;-------------------------------------------------------
-cpmbdos:   ld   a,c
-           cp   2
+monbdos:   ld   a,c
+           cp   1             ; get a character
+           jp   z,getc
+           cp   2             ; print a character
            jp   z,bdputc
-           cp   9
+           cp   9             ; print a string
            jp   z,bdputs
-           ret
-
-;-------------------------------------------------------
-; Send a character to the UART
-; char to be sent is in register e
-; no registers are modified
-;-------------------------------------------------------
-bdputc:    in   a,(uartstat)  ; get uart status
-           and  txfull        ; tx fifo full?
-           jr   nz,bdputc     ; wait if full
-           ld   a,e           ; get char in e
-           out  (uartdata),a  ; put the character
-           ret
-
-;-------------------------------------------------------
-; Send a string to the UART
-; pointer to string is in register de
-; strings are terminated with CP/M EOS (=$)
-; modifies registers a and hl
-;-------------------------------------------------------
-bdputs:    ld   a,(de)        ; get the next char
-           cp   '$'           ; check for string end
-           ret  z             ; return if done
-           call putc          ; put a character
-           inc  de            ; increment pointer
-           jr   bdputs        ; repeat
+           cp   99h           ; check for control-c
+           jp   z,kbhit
            ret
 
 ;-------------------------------------------------------
@@ -680,10 +719,18 @@ space:     ld   a,' '
 ; Print a carriage return and linefeed
 ; modifies register a
 ;-------------------------------------------------------
-crlf:      ld   a,cr
+xcrlf:     ld   a,cr
            call putc
            ld   a,lf
            jp   putc
+
+;-------------------------------------------------------
+; dummy interrupt service placeholders
+;-------------------------------------------------------
+
+isr1:      reti           ; interrupt service 1
+isr2:      reti           ; interrupt service 2
+isr3:      reti           ; interrupt service 3
 
 ;-------------------------------------------------------
 ; x820 register definitions
@@ -698,11 +745,15 @@ rndgen0    equ  04h       ; RNG data register 0
 rndgen1    equ  05h       ; RNG data register 1
 rndgen2    equ  06h       ; RNG data register 2
 
-timecntl   equ  08h       ; timer control register
-timeicl    equ  09h       ; initial count low
-timeich    equ  0ah       ; initial count high
+tmr1cntl   equ  08h       ; timer 1 control
+tmr1icl    equ  09h       ; initial count low
+tmr1ich    equ  0ah       ; initial count high
 
-diagleds   equ  0ch       ; LED data register
+tmr2cntl   equ  0ch       ; timer 2 control
+tmr2icl    equ  0dh       ; initial count low
+tmr2ich    equ  0eh       ; initial count high
+
+diagleds   equ  10h       ; LED data register
 
 ;-------------------------------------------------------
 ; x820 register bit definitions
@@ -727,6 +778,7 @@ lf         equ  0ah       ; linefeed
 esc        equ  1bh       ; escape
 bs         equ  08h       ; backspace
 ws         equ  20h       ; space
+ctrlc      equ  03h       ; control-c
 
 ;-------------------------------------------------------
 ; strings and messages
@@ -815,11 +867,5 @@ escflg     ds   1             ; console escape flag
 coflag     ds   1             ; console output toggle
 last       ds   2             ; mdump last address
 crc16      dw   0             ; 16-bit CRC
-
-;-------------------------------------------------------
-; reserved for stack
-;-------------------------------------------------------
-           ds   32
-tos        dw   0             ; top of stack
 
            end
