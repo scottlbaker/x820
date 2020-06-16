@@ -5,7 +5,16 @@
 data/monitor/*.hex
 data/monitor/*.bin
 data/monitor/*.lst
-data/monitor/temp/**
+
+# demo
+data/demo/*.hex
+data/demo/*.bin
+data/demo/*.lst
+
+# monitor
+data/tests/*.hex
+data/tests/*.bin
+data/tests/*.lst
 
 # Quartus files
 quartus/*.v
